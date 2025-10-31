@@ -10,6 +10,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="manifest" href="manifest.json">
     <style>
         /* Estilos CSS personalizados */
         body {
@@ -741,6 +742,19 @@ document.addEventListener('DOMContentLoaded', () => {
     downloadTemplateBtn.addEventListener('click', downloadTemplate);
     calculateBtn.addEventListener('click', calculateChange);
     loadState();
+
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js')
+                .then(registration => {
+                    console.log('Service Worker registrado.');
+                })
+                .catch(err => {
+                    console.error('Error al registrar Service Worker:', err);
+                });
+        });
+    }
+
 });
 </script>
 </body>
