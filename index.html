@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Nómina y Cambio</title>
+    <!-- Incluimos Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Fuente Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Estilos CSS personalizados */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Clases para la tabla de resultados */
+        .delta-needed {
+            color: #D93025; /* Rojo */
+            font-weight: 600;
+        }
+        .delta-surplus {
+            color: #1E8E3E; /* Verde */
+            font-weight: 500;
+        }
+        .delta-ok {
+            color: #5F6368; /* Gris */
+        }
+        /* Ocultar flechas en inputs numéricos */
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-4 md:p-8">
+    <!-- Contenido HTML -->
+    <div class="max-w-7xl mx-auto bg-white p-6 md:p-10 rounded-2xl shadow-lg">
+        <h1 class="text-3xl font-bold text-gray-900 mb-8">Calculadora de Nómina y Cambio</h1>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            
+            <!-- Columna Izquierda: Entradas -->
+            <div class="space-y-8">
+                <!-- Paso 1: Carga de Nómina -->
+                <section>
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">Paso 1: Cargar Nómina</h2>
+                    <p class="text-sm text-gray-600 mb-4">
+                        Sube tu archivo <code class="text-xs bg-gray-200 p-1 rounded">.csv</code> con las columnas <code class="text-xs bg-gray-200 p-1 rounded">nombre</code> y <code class="text-xs bg-gray-200 p-1 rounded">sueldo_quincena</code>.
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <input type="file" id="csvFileInput" accept=".csv" class="flex-grow w-full text-sm text-gray-500
+                            file:mr-4 file:py-2 file:px-4
+                            file:rounded-lg file:border-0
+                            file:text-sm file:font-semibold
+                            file:bg-blue-50 file:text-blue-700
+                            hover:file:bg-blue-100
+                            cursor-pointer
+                        ">
+                        <button id="downloadTemplateBtn" class="w-full sm:w-auto flex-shrink-0 px-5 py-2.5 text-sm font-medium text-white bg-gray-700 rounded-lg hover:bg-gray-800 focus:ring-4 focus:outline-none focus:ring-gray-300">
+                            Descargar Plantilla
+                        </button>
+                    </div>
+                    <div id="payrollSummary" class="mt-4 text-lg font-medium text-gray-700"></div>
+                </section>
+
+                <!-- Paso 2: Efectivo Disponible -->
+                <section>
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">Paso 2: Efectivo Disponible</h2>
+                    <div class="space-y-6">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-700 mb-3">Billetes</h3>
+                            <div id="billInputs" class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                <!-- Los inputs de billetes se generarán aquí -->
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-700 mb-3">Monedas</h3>
+                            <div id="coinInputs" class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                <!-- Los inputs de monedas se generarán aquí -->
+                            </div>
+                        </div>
+                    </div>
+                    <div id="availableTotal" class="mt-6 text-xl font-bold text-right text-gray-800">
+                        Total Disponible: $0.00
+                    </div>
+                </section>
+                
+                <!-- Paso 3: Calcular -->
+                <section>
+                    <button id="calculateBtn" disabled class="w-full px-6 py-4 text-lg font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300 disabled:bg-gray-300 disabled:cursor-not-allowed">
+                        Calcular Cambio Necesario
+                    </button>
+                </section>
+            </div>
+
+            <!-- Columna Derecha: Resultados -->
+            <div id="resultsSection" class="space-y-8 hidden">
+                <!-- Resumen General -->
+                <section>
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">Paso 3: Resultados</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <div class="text-sm font-medium text-gray-500">Total Nómina (Necesario)</div>
+                            <div id="resultTotalPayroll" class="text-2xl font-bold text-gray-900">$0.00</div>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <div class="text-sm font-medium text-gray-500">Total Efectivo (Disponible)</div>
+                            <div id="resultTotalAvailable" class="text-2xl font-bold text-gray-900">$0.00</div>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <div class="text-sm font-medium text-gray-500">Diferencia Neta</div>
+                            <div id="resultNetDifference" class="text-2xl font-bold text-gray-900">$0.00</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Detalle de Cambio (RE-AGREGADO) -->
+                <section>
+                    <h3 class="text-xl font-semibold text-gray-700 mb-4">Detalle de Cambio (Ir al Banco)</h3>
+                    <div class="overflow-x-auto border border-gray-200 rounded-lg">
+                        <table class="w-full min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Denominación</th>
+                                    <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Necesario (Sobres)</th>
+                                    <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Disponible (Caja)</th>
+                                    <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Diferencia (Banco)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="resultsTableBody" class="bg-white divide-y divide-gray-200">
+                                <!-- Filas de resultados generadas por JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- NUEVA SECCIÓN: Resumen de Cambio -->
+                <section id="changeSummarySection" class="hidden">
+                    <h3 class="text-xl font-semibold text-gray-700 mb-4">Resumen del Cambio</h3>
+                    <div id="changeSummaryBox" class="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-lg shadow-md">
+                        <!-- El contenido se generará por JS -->
+                    </div>
+                </section>
+
+                <!-- Detalle por Empleado -->
+                <section>
+                    <h3 class="text-xl font-semibold text-gray-700 mb-4">Desglose por Empleado (Para Sobres)</h3>
+                    <div class="max-h-96 overflow-y-auto border border-gray-200 rounded-lg">
+                        <table class="w-full min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50 sticky top-0">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Nombre</th>
+                                    <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Sueldo</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Desglose Óptimo</th>
+                                </tr>
+                            </thead>
+                            <tbody id="employeeBreakdownTableBody" class="bg-white divide-y divide-gray-200">
+                                <!-- Filas de empleados generadas por JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <!-- Todo el JavaScript -->
+<script>
+/* ---------------------------
+   Calculadora: script mejorado
+   - reactividad automática
+   - billete $2000 y moneda $0.5
+   - localStorage
+   - plan mínimo para llevar al banco (bounded knapsack)
+   --------------------------- */
+
+const DENOMINATIONS_BILLS  = [2000, 1000, 500, 200, 100, 50, 20];
+const DENOMINATIONS_COINS  = [20, 10, 5, 2, 1, 0.5];
+const ALL_DENOMINATIONS_ORDERED = [2000, 1000, 500, 200, 100, 50, 20, 10, 5, 2, 1, 0.5];
+
+// Estado
+let payrollData = [];
+let totalPayroll = 0;
+let availableBreakdown = {};
+let availableTotal = 0;
+
+// Referencias DOM
+const csvFileInput = document.getElementById('csvFileInput');
+const downloadTemplateBtn = document.getElementById('downloadTemplateBtn');
+const payrollSummary = document.getElementById('payrollSummary');
+const billInputsContainer = document.getElementById('billInputs');
+const coinInputsContainer = document.getElementById('coinInputs');
+const availableTotalEl = document.getElementById('availableTotal');
+const calculateBtn = document.getElementById('calculateBtn');
+const resultsSection = document.getElementById('resultsSection');
+const resultTotalPayroll = document.getElementById('resultTotalPayroll');
+const resultTotalAvailable = document.getElementById('resultTotalAvailable');
+const resultNetDifference = document.getElementById('resultNetDifference');
+const resultsTableBody = document.getElementById('resultsTableBody');
+const employeeBreakdownTableBody = document.getElementById('employeeBreakdownTableBody');
+const changeSummarySection = document.getElementById('changeSummarySection');
+const changeSummaryBox = document.getElementById('changeSummaryBox');
+
+/* ---------------------------
+   UI: crear inputs por denominación
+   --------------------------- */
+function createDenominationInput(value, type, container) {
+    const id = `${type}-${value}`;
+    const div = document.createElement('div');
+    const label = document.createElement('label');
+    label.htmlFor = id;
+    label.className = "block text-sm font-medium text-gray-700";
+    label.textContent = `${type === 'bill' ? 'Billete' : 'Moneda'} $${value}`;
+
+    const input = document.createElement('input');
+    input.type = "number";
+    input.id = id;
+    input.min = "0";
+    input.step = value < 1 ? "0.5" : "1";
+    input.value = "0";
+    input.dataset.value = value;
+    input.dataset.type = type;
+    input.className = "denomination-input mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm";
+
+    input.addEventListener('input', () => {
+        updateAvailableCash();
+        saveState();
+        autoCalculate();
+    });
+
+    div.appendChild(label);
+    div.appendChild(input);
+    container.appendChild(div);
+}
+
+DENOMINATIONS_BILLS.forEach(v => createDenominationInput(v, 'bill', billInputsContainer));
+DENOMINATIONS_COINS.forEach(v => createDenominationInput(v, 'coin', coinInputsContainer));
+
+/* ---------------------------
+   Lógica principal
+   --------------------------- */
+
+// calcula desglose óptimo para un monto (usa denominaciones disponibles en ALL...)
+function calculateOptimalBreakdown(amount) {
+    // amount en pesos (float). Convertimos a centavos para evitar fp errors.
+    const cents = Math.round(amount * 100);
+    const breakdown = {};
+    let remaining = cents;
+
+    const centsDenoms = ALL_DENOMINATIONS_ORDERED.map(d => Math.round(d * 100));
+    for (const denomC of centsDenoms) {
+        if (remaining >= denomC) {
+            const cnt = Math.floor(remaining / denomC);
+            const denom = denomC / 100;
+            breakdown[denom] = cnt;
+            remaining -= cnt * denomC;
+        }
+    }
+
+    // Si queda algo menor a 1 peso y >= 50 centavos, damos 0.5
+    if (remaining > 0) {
+        if (remaining >= 50) breakdown[0.5] = (breakdown[0.5] || 0) + 1;
+        else if (remaining > 0) {
+            // redondeo hacia arriba a 1 peso si quedó > 0.75 (caso raro)
+            breakdown[1] = (breakdown[1] || 0) + 1;
+        }
+    }
+    return breakdown;
+}
+
+function handleCSVUpload(evt) {
+    const f = evt.target.files[0];
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = e => processPayroll(e.target.result);
+    r.readAsText(f);
+}
+
+function processPayroll(csvText) {
+    payrollData = [];
+    totalPayroll = 0;
+    employeeBreakdownTableBody.innerHTML = '';
+
+    const rows = csvText.split('\n').filter(r => r.trim() !== '');
+    if (rows.length === 0) {
+        showModal('CSV vacío', 'El CSV no contiene filas.');
+        return;
+    }
+    const header = rows.shift().replace(/^\uFEFF/, '').split(',').map(h => h.trim().toLowerCase());
+    const nameIndex = header.indexOf('nombre');
+    const salaryIndex = header.indexOf('sueldo_quincena');
+    if (nameIndex === -1 || salaryIndex === -1) {
+        showModal('Error en CSV', 'El archivo CSV debe tener las columnas "nombre" y "sueldo_quincena".');
+        csvFileInput.value = '';
+        return;
+    }
+
+    for (const row of rows) {
+        const values = row.split(',');
+        const nombre = values[nameIndex]?.trim() || 'Sin Nombre';
+        const sueldo = parseFloat(values[salaryIndex]) || 0;
+        if (sueldo > 0) {
+            payrollData.push({ nombre, sueldo: Math.round(sueldo * 100) / 100 });
+            totalPayroll += Math.round(sueldo * 100) / 100;
+        }
+    }
+
+    payrollSummary.innerHTML = `<strong class="text-blue-600">Total a Pagar: $${totalPayroll.toFixed(2)}</strong><span class="text-gray-600"> (${payrollData.length} empleados)</span>`;
+    calculateBtn.disabled = false;
+    saveState();
+    autoCalculate();
+}
+
+function updateAvailableCash() {
+    availableTotal = 0;
+    availableBreakdown = {};
+    ALL_DENOMINATIONS_ORDERED.forEach(d => availableBreakdown[d] = 0);
+
+    document.querySelectorAll('.denomination-input').forEach(inp => {
+        const denom = parseFloat(inp.dataset.value);
+        const cnt = parseFloat(inp.value) || 0;
+        availableBreakdown[denom] += cnt;
+        availableTotal += denom * cnt;
+    });
+
+    availableTotalEl.textContent = `Total Disponible: $${availableTotal.toFixed(2)}`;
+}
+
+/* ---------------------------
+   FUNCION: encontrar el mínimo valor que puedes llevar
+   - targetValue: valor necesario a recibir del banco (en pesos, float)
+   - availableCounts: objeto {denom: count} que representa todo el efectivo disponible (en caja)
+   Devuelve: {carryValue (float), carryBreakdown: {denom:count}, feasible (bool)}
+   --------------------------- */
+function findMinimalCarry(targetValue, availableCounts) {
+    // Convertir a centavos
+    const target = Math.round(targetValue * 100);
+    // Crear lista de items (value en centavos, count)
+    const items = [];
+    let totalAvailable = 0;
+    for (const denomStr of Object.keys(availableCounts)) {
+        const denom = parseFloat(denomStr);
+        const cnt = Math.floor(availableCounts[denom] || 0);
+        if (cnt <= 0) continue;
+        const val = Math.round(denom * 100);
+        totalAvailable += cnt * val;
+        // dividir en potencias de dos (binary splitting) para hacer bounded knapsack con items individuales
+        let k = 1;
+        let left = cnt;
+        while (left > 0) {
+            const take = Math.min(k, left);
+            items.push({value: val * take, denom: denom, count: take});
+            left -= take;
+            k <<= 1;
+        }
+    }
+
+    if (totalAvailable < target) {
+        // No es posible cubrir con lo que tienes
+        return { feasible: false, carryValue: totalAvailable / 100, carryBreakdown: null, missing: (target - totalAvailable) / 100 };
+    }
+
+    // DP: reachable sums. Guardamos parent para reconstruir (map sum -> {idx, prevSum})
+    const maxSum = totalAvailable;
+    // Usamos TypedArray para rendimiento
+    const reachable = new Uint8Array(maxSum + 1); // 0/1
+    const parentIdx = new Int32Array(maxSum + 1); parentIdx.fill(-1);
+    const parentPrev = new Int32Array(maxSum + 1); parentPrev.fill(-1);
+
+    reachable[0] = 1;
+
+    for (let idx = 0; idx < items.length; idx++) {
+        const it = items[idx];
+        const val = it.value;
+        // iteramos hacia atrás para evitar reutilizar item más de una vez
+        for (let s = maxSum - val; s >= 0; s--) {
+            if (reachable[s] && !reachable[s + val]) {
+                reachable[s + val] = 1;
+                parentIdx[s + val] = idx;
+                parentPrev[s + val] = s;
+            }
+        }
+    }
+
+    // buscar la suma mínima >= target que sea alcanzable
+    let chosenSum = -1;
+    for (let s = target; s <= maxSum; s++) {
+        if (reachable[s]) { chosenSum = s; break; }
+    }
+    if (chosenSum === -1) {
+        // (teóricamente no debería pasar porque totalAvailable >= target)
+        return { feasible: false, carryValue: totalAvailable / 100, carryBreakdown: null, missing: (target - totalAvailable) / 100 };
+    }
+
+    // reconstruir selección de items
+    const carryCounts = {}; // denom -> count
+    let cur = chosenSum;
+    while (cur > 0) {
+        const idx = parentIdx[cur];
+        const prev = parentPrev[cur];
+        if (idx === -1 || prev === -1) break; // safety
+        const it = items[idx];
+        carryCounts[it.denom] = (carryCounts[it.denom] || 0) + it.count;
+        cur = prev;
+    }
+
+    // Normalizar (puede tener denominaciones fraccionarias como 0.5)
+    const carryBreakdown = {};
+    for (const d of Object.keys(carryCounts)) carryBreakdown[parseFloat(d)] = carryCounts[d];
+
+    return { feasible: true, carryValue: chosenSum / 100, carryBreakdown, missing: 0 };
+}
+
+/* ---------------------------
+   Cálculo del cambio y resumen (mejorado)
+   --------------------------- */
+function calculateChange() {
+    if (payrollData.length === 0) return;
+    updateAvailableCash();
+    resultsSection.classList.remove('hidden');
+    changeSummarySection.classList.add('hidden');
+    employeeBreakdownTableBody.innerHTML = '';
+
+    // neededBreakdown = total por denominación requerido para formar los sobres (lo calculamos por empleado)
+    let neededBreakdown = {};
+    ALL_DENOMINATIONS_ORDERED.forEach(d => neededBreakdown[d] = 0);
+    let tempAvailable = { ...availableBreakdown };
+
+    for (const emp of payrollData) {
+        let remaining = emp.sueldo;
+        let breakdown = {};
+
+        // usar lo que haya en caja (tempAvailable)
+        for (const denom of ALL_DENOMINATIONS_ORDERED) {
+            if (remaining >= denom && tempAvailable[denom] > 0) {
+                const need = Math.floor(remaining / denom);
+                const used = Math.min(need, tempAvailable[denom]);
+                if (used > 0) {
+                    breakdown[denom] = (breakdown[denom] || 0) + used;
+                    tempAvailable[denom] -= used;
+                    remaining = Math.round((remaining - used * denom) * 100) / 100;
+                }
+            }
+        }
+
+        // lo que falta para este empleado lo pedimos al banco (desglose óptimo)
+        if (remaining > 0) {
+            const fromBank = calculateOptimalBreakdown(remaining);
+            for (const d in fromBank) breakdown[d] = (breakdown[d] || 0) + fromBank[d];
+        }
+
+        for (const d in breakdown) neededBreakdown[d] = (neededBreakdown[d] || 0) + breakdown[d];
+        addEmployeeBreakdownRow(emp.nombre, emp.sueldo, breakdown);
+    }
+
+    // Totales generales
+    resultTotalPayroll.textContent = `$${totalPayroll.toFixed(2)}`;
+    resultTotalAvailable.textContent = `$${availableTotal.toFixed(2)}`;
+    const diff = Math.round((totalPayroll - availableTotal) * 100) / 100;
+    resultNetDifference.textContent = `$${diff.toFixed(2)}`;
+    resultNetDifference.className = "text-2xl font-bold " + (diff > 0 ? 'text-red-600' : 'text-green-600');
+
+    // Tabla detalle: needed vs available
+    resultsTableBody.innerHTML = '';
+    let neededItems = [], surplusItems = [];
+    let totalNeededValue = 0, totalSurplusValue = 0;
+
+    for (const denom of ALL_DENOMINATIONS_ORDERED) {
+        const needed = neededBreakdown[denom] || 0;
+        const available = availableBreakdown[denom] || 0;
+        const delta = needed - available;
+        let deltaText = 'OK', deltaClass = 'delta-ok';
+        if (delta > 0) {
+            deltaText = `Faltan ${delta}`;
+            deltaClass = 'delta-needed';
+            neededItems.push({ denom, count: delta });
+            totalNeededValue += delta * denom;
+        } else if (delta < 0) {
+            deltaText = `Sobran ${Math.abs(delta)}`;
+            deltaClass = 'delta-surplus';
+            surplusItems.push({ denom, count: Math.abs(delta) });
+            totalSurplusValue += Math.abs(delta) * denom;
+        }
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td class="px-4 py-3 text-sm font-medium text-gray-900">$${denom}</td>
+            <td class="px-4 py-3 text-sm text-right text-gray-500">${needed}</td>
+            <td class="px-4 py-3 text-sm text-right text-gray-500">${available}</td>
+            <td class="px-4 py-3 text-sm text-right ${deltaClass}">${deltaText}</td>
+        `;
+        resultsTableBody.appendChild(tr);
+    }
+
+    // Si no hay nada que recibir ni nada que dar, mensaje simple
+    if (totalNeededValue === 0 && totalSurplusValue === 0) {
+        changeSummaryBox.innerHTML = `<p class="text-green-700 font-medium">¡No necesitas cambiar nada! El efectivo disponible cuadra perfectamente.</p>`;
+        changeSummarySection.classList.remove('hidden');
+        resultsSection.scrollIntoView({ behavior: 'smooth' });
+        return;
+    }
+
+    // BUSCAMOS el mínimo que tienes que LLEVAR al banco para obtener lo que falta.
+    // objetivo = totalNeededValue (pesos)
+    const target = Math.round(totalNeededValue * 100) / 100; // pesos, float
+
+    // find minimal carry usando TODO el efectivo disponible (porque puedes llevar cualquier billete que tengas)
+    const minimal = findMinimalCarry(target, availableBreakdown);
+
+    // Formateos
+    const formatList = arr => arr.map(i => `<li>${i.count} × $${i.denom}</li>`).join('') || '<li>Nada</li>';
+
+    let summaryHTML = `<div class="grid md:grid-cols-2 gap-6">`;
+
+    // Si es factible cubrir con lo que hay en caja:
+    if (minimal.feasible) {
+        // breakdown a llevar (lo mínimo)
+        const carry = minimal.carryBreakdown || {};
+        const carryValue = Math.round(minimal.carryValue * 100) / 100;
+
+        // Convertir carry a array para mostrar
+        const carryArr = Object.keys(carry).map(d => ({ denom: parseFloat(d), count: carry[d] })).sort((a,b)=>b.denom-a.denom);
+
+        // needed (lo que vas a recibir)
+        const needArr = neededItems.slice().sort((a,b)=>b.denom-a.denom);
+
+        summaryHTML += `
+            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg">
+                <h4 class="text-blue-700 font-semibold mb-2">💼 PASO 1: Llevar al banco</h4>
+                <p class="text-gray-800">Lleva de tu caja: <strong>$${carryValue.toFixed(2)}</strong></p>
+                <p class="text-sm text-gray-600 mt-1">Desglose (lo que llevas):</p>
+                <ul class="list-disc ml-5 text-sm mt-2">
+                    ${carryArr.map(i => `<li>${i.count} × $${i.denom}</li>`).join('') || '<li>Nada</li>'}
+                </ul>
+            </div>
+        `;
+
+        summaryHTML += `
+            <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-lg">
+                <h4 class="text-green-700 font-semibold mb-2">🔄 PASO 2: Cambiar por</h4>
+                <p class="text-gray-800">Pide que te cambien esos <strong>$${carryValue.toFixed(2)}</strong> por:</p>
+                <p class="text-sm text-gray-600 mt-1">Desglose (lo que recibes del banco):</p>
+                <ul class="list-disc ml-5 text-sm mt-2">
+                    ${formatList(needArr)}
+                </ul>
+                <p class="mt-3 text-sm text-blue-700 font-medium">✓ El banco te regresa los mismos $${carryValue.toFixed(2)} pero en las denominaciones que necesitas.</p>
+            </div>
+        `;
+    } else {
+        // No puedes cubrir con lo que tienes en caja: muestra cuánto falta y sugiere llevar lo que tengas + cuánto extra aportar
+        const missing = Math.round(minimal.missing * 100) / 100;
+        // Llevarás todo lo disponible (muestra un resumen de disponible)
+        const availArr = Object.keys(availableBreakdown).map(k => ({ denom: parseFloat(k), count: availableBreakdown[k] })).filter(x=>x.count>0).sort((a,b)=>b.denom-a.denom);
+        summaryHTML += `
+            <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-lg">
+                <h4 class="text-yellow-700 font-semibold mb-2">⚠️ No es suficiente en caja</h4>
+                <p class="text-gray-800">Te faltan <strong>$${missing.toFixed(2)}</strong> para completar lo que el banco debe darte.</p>
+                <p class="text-sm text-gray-600 mt-1">Puedes llevar todo lo que tengas (suma total $${availableTotal.toFixed(2)}) y deberías aportar adicionalmente <strong>$${missing.toFixed(2)}</strong> desde fuera.</p>
+                <p class="mt-2 text-sm text-gray-600">Detalle del efectivo en caja:</p>
+                <ul class="list-disc ml-5 text-sm mt-2">
+                    ${availArr.map(i=>`<li>${i.count} × $${i.denom}</li>`).join('') || '<li>Nada</li>'}
+                </ul>
+            </div>
+        `;
+
+        summaryHTML += `
+            <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-lg">
+                <h4 class="text-green-700 font-semibold mb-2">🏦 Pedir al banco (recibir)</h4>
+                <p class="text-gray-800">Total que debes recibir: <strong>$${totalNeededValue.toFixed(2)}</strong></p>
+                <p class="text-sm text-gray-600 mt-1">Desglose (pedir):</p>
+                <ul class="list-disc ml-5 text-sm mt-2">${formatList(neededItems)}</ul>
+            </div>
+        `;
+    }
+
+    summaryHTML += `</div>`;
+
+    // Añadimos resumen neto
+    if (minimal.feasible) {
+        const carryValue = Math.round(minimal.carryValue * 100) / 100;
+        if (carryValue > totalNeededValue) {
+            const extra = Math.round((carryValue - totalNeededValue) * 100) / 100;
+            summaryHTML += `<p class="mt-4 text-blue-600 font-medium">💡 Nota: Con los $${carryValue.toFixed(2)} que cambias, cubres los $${totalNeededValue.toFixed(2)} que necesitas y te quedan <strong>$${extra.toFixed(2)}</strong> extra en tu caja (en las denominaciones cambiadas).</p>`;
+        } else if (carryValue === totalNeededValue) {
+            summaryHTML += `<p class="mt-4 text-green-600 font-semibold">✅ Perfecto: El monto a cambiar coincide exactamente con lo que necesitas.</p>`;
+        }
+    }
+
+    changeSummaryBox.innerHTML = summaryHTML;
+    changeSummarySection.classList.remove('hidden');
+    resultsSection.scrollIntoView({ behavior: 'smooth' });
+}
+
+/* ---------------------------
+   Helper: agregar fila empleado
+   --------------------------- */
+function addEmployeeBreakdownRow(nombre, sueldo, breakdown) {
+    const breakdownStr = ALL_DENOMINATIONS_ORDERED
+        .filter(d => breakdown[d] > 0)
+        .map(d => `<strong>${breakdown[d]}</strong>x$${d}`)
+        .join(', ');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+        <td class="px-4 py-3 text-sm font-medium text-gray-900">${nombre}</td>
+        <td class="px-4 py-3 text-sm text-right text-gray-500">$${sueldo.toFixed(2)}</td>
+        <td class="px-4 py-3 text-sm text-gray-700">${breakdownStr || 'N/A'}</td>
+    `;
+    employeeBreakdownTableBody.appendChild(tr);
+}
+
+/* ---------------------------
+   localStorage: save / load
+   --------------------------- */
+function saveState() {
+    const data = {
+        availableBreakdown,
+        totalPayroll,
+        payrollCount: payrollData.length
+    };
+    try { localStorage.setItem('nominaState', JSON.stringify(data)); } catch(e) {}
+}
+
+function loadState() {
+    try {
+        const data = JSON.parse(localStorage.getItem('nominaState') || '{}');
+        if (!data.availableBreakdown) return;
+        for (const [den, val] of Object.entries(data.availableBreakdown)) {
+            const inp = document.querySelector(`.denomination-input[data-value="${den}"]`);
+            if (inp) inp.value = val;
+        }
+        updateAvailableCash();
+        if (data.totalPayroll) {
+            totalPayroll = data.totalPayroll;
+            payrollSummary.innerHTML = `<strong class="text-blue-600">Total a Pagar: $${totalPayroll.toFixed(2)}</strong><span class="text-gray-600"> (${data.payrollCount} empleados)</span>`;
+            calculateBtn.disabled = false;
+        }
+    } catch(e) {}
+}
+
+/* ---------------------------
+   Utilidades UI
+   --------------------------- */
+function showModal(title, message) {
+    const overlay = document.createElement('div');
+    overlay.className = 'fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center p-4 z-50';
+    const box = document.createElement('div');
+    box.className = 'bg-white rounded-lg shadow-xl p-6 max-w-md';
+    box.innerHTML = `<h3 class="text-lg font-semibold mb-2">${title}</h3><p class="text-sm text-gray-600">${message}</p>
+        <div class="mt-4 text-right"><button class="bg-blue-600 text-white px-4 py-2 rounded">OK</button></div>`;
+    box.querySelector('button').onclick = () => overlay.remove();
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+}
+
+/* ---------------------------
+   Reactividad y eventos
+   --------------------------- */
+function autoCalculate() { if (payrollData.length > 0) calculateChange(); }
+
+csvFileInput.addEventListener('change', handleCSVUpload);
+downloadTemplateBtn.addEventListener('click', () => {
+    const csv = "data:text/csv;charset=utf-8,nombre,sueldo_quincena\nJuan Perez,3500.50\nMaria Garcia,4200.00\nCarlos Lopez,3850.75\nDiaego Maradona,12345\n";
+    const link = document.createElement('a');
+    link.href = encodeURI(csv);
+    link.download = 'plantilla_nomina.csv';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+});
+calculateBtn.addEventListener('click', calculateChange);
+
+/* ---------------------------
+   Inicializar
+   --------------------------- */
+loadState();
+updateAvailableCash();
+</script>
+
+
+</body>
+</html>
+
+
+
+
+
