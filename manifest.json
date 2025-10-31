@@ -2,7 +2,7 @@
   "name": "Calculadora de Nómina y Cambio",
   "short_name": "NóminaCalc",
   "description": "Calculadora para desglose de nómina y cambio para el banco.",
-  "start_url": "/",
+  "start_url": ".",
   "display": "standalone",
   "background_color": "#f3f4f6",
   "theme_color": "#2563eb",
