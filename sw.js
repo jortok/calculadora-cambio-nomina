@@ -1,7 +1,7 @@
 const CACHE_NAME = 'nomina-cache-v1';
 const urlsToCache = [
-  '.',
-  'index.html',
+  '/calculadora-cambio-nomina/',
+  '/calculadora-cambio-nomina/index.html',
   'https://cdn.tailwindcss.com',
   'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap'
   // Las imágenes de billetes/monedas se cachearán automáticamente en el primer uso.

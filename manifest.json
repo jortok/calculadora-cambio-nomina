@@ -2,19 +2,20 @@
   "name": "Calculadora de Nómina y Cambio",
   "short_name": "NóminaCalc",
   "description": "Calculadora para desglose de nómina y cambio para el banco.",
-  "start_url": ".",
+  "start_url": "/calculadora-cambio-nomina/index.html",
+  "scope": "/calculadora-cambio-nomina/",
   "display": "standalone",
   "background_color": "#f3f4f6",
   "theme_color": "#2563eb",
   "icons": [
     {
-      "src": "img/moneda_1.png",
+      "src": "/calculadora-cambio-nomina/img/moneda_1.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "img/moneda_1.png",
+      "src": "/calculadora-cambio-nomina/img/moneda_1.png",
       "sizes": "512x512",
       "type": "image/png"
     }
