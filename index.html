@@ -36,6 +36,18 @@
         input[type=number] {
             -moz-appearance: textfield;
         }
+        /* Estilos para las imágenes de monedas y billetes */
+        .denomination-img {
+            width: 60px;
+            height: auto;
+            object-fit: contain;
+        }
+        .bill-img {
+            width: 80px;
+        }
+        .coin-img {
+            width: 50px;
+        }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen p-4 md:p-8">
@@ -75,13 +87,13 @@
                     <div class="space-y-6">
                         <div>
                             <h3 class="text-lg font-semibold text-gray-700 mb-3">Billetes</h3>
-                            <div id="billInputs" class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                            <div id="billInputs" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <!-- Los inputs de billetes se generarán aquí -->
                             </div>
                         </div>
                         <div>
                             <h3 class="text-lg font-semibold text-gray-700 mb-3">Monedas</h3>
-                            <div id="coinInputs" class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                            <div id="coinInputs" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <!-- Los inputs de monedas se generarán aquí -->
                             </div>
                         </div>
@@ -175,14 +187,15 @@
 /* ---------------------------
    Calculadora: script mejorado
    - reactividad automática
-   - billete $2000 y moneda $0.5
+   - billete $2000 COMENTADO (preparado para futuro)
    - localStorage
    - plan mínimo para llevar al banco (bounded knapsack)
    --------------------------- */
 
-const DENOMINATIONS_BILLS  = [2000, 1000, 500, 200, 100, 50, 20];
+// DENOMINACIONES ACTUALES (billete de 2000 comentado para futuro)
+const DENOMINATIONS_BILLS  = [/*2000,*/ 1000, 500, 200, 100, 50, 20];
 const DENOMINATIONS_COINS  = [20, 10, 5, 2, 1, 0.5];
-const ALL_DENOMINATIONS_ORDERED = [2000, 1000, 500, 200, 100, 50, 20, 10, 5, 2, 1, 0.5];
+const ALL_DENOMINATIONS_ORDERED = [/*2000,*/ 1000, 500, 200, 100, 50, 20, 10, 5, 2, 1, 0.5];
 
 // Estado
 let payrollData = [];
@@ -213,6 +226,36 @@ const changeSummaryBox = document.getElementById('changeSummaryBox');
 function createDenominationInput(value, type, container) {
     const id = `${type}-${value}`;
     const div = document.createElement('div');
+    div.className = "flex items-center gap-4 p-3 bg-gray-50 rounded-lg";
+    
+    // Determinar el nombre del archivo de imagen basado en el tipo y valor
+    let imageName;
+    if (type === 'bill') {
+        imageName = `billete_${value}.png`;
+    } else {
+        // Para monedas, manejar el caso especial de 0.5
+        if (value === 0.5) {
+            imageName = `moneda_0.50.png`;
+        } else {
+            imageName = `moneda_${value}.png`;
+        }
+    }
+    
+    // Imagen de la denominación
+    const img = document.createElement('img');
+    img.src = `./img/${imageName}`;
+    img.alt = `${type === 'bill' ? 'Billete' : 'Moneda'} de $${value}`;
+    img.className = `denomination-img ${type === 'bill' ? 'bill-img' : 'coin-img'}`;
+    img.onerror = function() {
+        // Si la imagen no existe, mostrar un placeholder
+        this.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjYwIiByeD0iNCIgZmlsbD0iI0VFRUVFRSIvPgo8dGV4dCB4PSIzMCIgeT0iMzUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzY2NjY2NiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+JDwvdGV4dD4KPHRleHQgeD0iMzAiIHk9IjUwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NjY2NjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPiR7dmFsdWV9PC90ZXh0Pgo8L3N2Zz4K'.replace('${value}', value);
+        this.alt = `Imagen no disponible para $${value}`;
+    };
+    
+    // Contenedor de la información
+    const infoDiv = document.createElement('div');
+    infoDiv.className = "flex-grow";
+    
     const label = document.createElement('label');
     label.htmlFor = id;
     label.className = "block text-sm font-medium text-gray-700";
@@ -234,8 +277,10 @@ function createDenominationInput(value, type, container) {
         autoCalculate();
     });
 
-    div.appendChild(label);
-    div.appendChild(input);
+    infoDiv.appendChild(label);
+    infoDiv.appendChild(input);
+    div.appendChild(img);
+    div.appendChild(infoDiv);
     container.appendChild(div);
 }
 
@@ -609,84 +654,94 @@ function addEmployeeBreakdownRow(nombre, sueldo, breakdown) {
     tr.innerHTML = `
         <td class="px-4 py-3 text-sm font-medium text-gray-900">${nombre}</td>
         <td class="px-4 py-3 text-sm text-right text-gray-500">$${sueldo.toFixed(2)}</td>
-        <td class="px-4 py-3 text-sm text-gray-700">${breakdownStr || 'N/A'}</td>
+        <td class="px-4 py-3 text-sm text-gray-500">${breakdownStr}</td>
     `;
     employeeBreakdownTableBody.appendChild(tr);
 }
 
 /* ---------------------------
-   localStorage: save / load
+   Auto cálculo (reactividad)
+   --------------------------- */
+function autoCalculate() {
+    if (payrollData.length > 0) calculateChange();
+}
+
+/* ---------------------------
+   Persistencia (localStorage)
    --------------------------- */
 function saveState() {
-    const data = {
-        availableBreakdown,
+    const state = {
+        payrollData,
         totalPayroll,
-        payrollCount: payrollData.length
+        availableBreakdown,
+        availableTotal
     };
-    try { localStorage.setItem('nominaState', JSON.stringify(data)); } catch(e) {}
+    localStorage.setItem('payrollCalculatorState', JSON.stringify(state));
 }
 
 function loadState() {
-    try {
-        const data = JSON.parse(localStorage.getItem('nominaState') || '{}');
-        if (!data.availableBreakdown) return;
-        for (const [den, val] of Object.entries(data.availableBreakdown)) {
-            const inp = document.querySelector(`.denomination-input[data-value="${den}"]`);
-            if (inp) inp.value = val;
-        }
-        updateAvailableCash();
-        if (data.totalPayroll) {
-            totalPayroll = data.totalPayroll;
-            payrollSummary.innerHTML = `<strong class="text-blue-600">Total a Pagar: $${totalPayroll.toFixed(2)}</strong><span class="text-gray-600"> (${data.payrollCount} empleados)</span>`;
-            calculateBtn.disabled = false;
-        }
-    } catch(e) {}
+    const saved = localStorage.getItem('payrollCalculatorState');
+    if (!saved) return;
+    const state = JSON.parse(saved);
+    payrollData = state.payrollData || [];
+    totalPayroll = state.totalPayroll || 0;
+    availableBreakdown = state.availableBreakdown || {};
+    availableTotal = state.availableTotal || 0;
+
+    // Restaurar UI
+    if (payrollData.length > 0) {
+        payrollSummary.innerHTML = `<strong class="text-blue-600">Total a Pagar: $${totalPayroll.toFixed(2)}</strong><span class="text-gray-600"> (${payrollData.length} empleados)</span>`;
+        calculateBtn.disabled = false;
+    }
+    // Restaurar inputs de efectivo
+    document.querySelectorAll('.denomination-input').forEach(inp => {
+        const denom = parseFloat(inp.dataset.value);
+        inp.value = availableBreakdown[denom] || 0;
+    });
+    availableTotalEl.textContent = `Total Disponible: $${availableTotal.toFixed(2)}`;
+    autoCalculate();
 }
 
 /* ---------------------------
-   Utilidades UI
+   Modal simple
    --------------------------- */
-function showModal(title, message) {
-    const overlay = document.createElement('div');
-    overlay.className = 'fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center p-4 z-50';
-    const box = document.createElement('div');
-    box.className = 'bg-white rounded-lg shadow-xl p-6 max-w-md';
-    box.innerHTML = `<h3 class="text-lg font-semibold mb-2">${title}</h3><p class="text-sm text-gray-600">${message}</p>
-        <div class="mt-4 text-right"><button class="bg-blue-600 text-white px-4 py-2 rounded">OK</button></div>`;
-    box.querySelector('button').onclick = () => overlay.remove();
-    overlay.appendChild(box);
-    document.body.appendChild(overlay);
+function showModal(title, msg) {
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+    modal.innerHTML = `
+        <div class="bg-white p-6 rounded-lg max-w-md w-full mx-4">
+            <h3 class="text-lg font-bold mb-2">${title}</h3>
+            <p class="mb-4">${msg}</p>
+            <button class="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Cerrar</button>
+        </div>
+    `;
+    modal.querySelector('button').onclick = () => modal.remove();
+    document.body.appendChild(modal);
 }
 
 /* ---------------------------
-   Reactividad y eventos
+   Descargar plantilla CSV
    --------------------------- */
-function autoCalculate() { if (payrollData.length > 0) calculateChange(); }
+function downloadTemplate() {
+    const csv = 'nombre,sueldo_quincena\nJuan Pérez,5000.00\nMaría García,7500.00\nCarlos López,6200.00';
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'plantilla_nomina.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+}
 
-csvFileInput.addEventListener('change', handleCSVUpload);
-downloadTemplateBtn.addEventListener('click', () => {
-    const csv = "data:text/csv;charset=utf-8,nombre,sueldo_quincena\nJuan Perez,3500.50\nMaria Garcia,4200.00\nCarlos Lopez,3850.75\nDiaego Maradona,12345\n";
-    const link = document.createElement('a');
-    link.href = encodeURI(csv);
-    link.download = 'plantilla_nomina.csv';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+/* ---------------------------
+   Inicialización
+   --------------------------- */
+document.addEventListener('DOMContentLoaded', () => {
+    csvFileInput.addEventListener('change', handleCSVUpload);
+    downloadTemplateBtn.addEventListener('click', downloadTemplate);
+    calculateBtn.addEventListener('click', calculateChange);
+    loadState();
 });
-calculateBtn.addEventListener('click', calculateChange);
-
-/* ---------------------------
-   Inicializar
-   --------------------------- */
-loadState();
-updateAvailableCash();
 </script>
-
-
 </body>
 </html>
-
-
-
-
-
